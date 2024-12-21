@@ -10,6 +10,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { ScissorsIcon, SearchIcon, ShoppingCartIcon } from "lucide-react";
 import Link from "next/link";
+import { AuthButtons } from "./auth-buttons";
 
 export function Header() {
   return (
@@ -32,19 +33,7 @@ export function Header() {
               </div>
             </div>
             <nav className="hidden md:flex space-x-4">
-              {/* {session ? (
-                <ProfileMenu />
-              ) : (
-                <Link href="/entrar">
-                  <Button
-                    variant="ghost"
-                    className="text-white hover:text-[#ff9900]"
-                  >
-                    <UserIcon className="h-5 w-5 mr-1" />
-                    Entrar
-                  </Button>
-                </Link>
-              )} */}
+              <AuthButtons />
               <Button
                 variant="ghost"
                 className="text-white hover:text-[#ff9900]"
