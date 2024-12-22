@@ -1,5 +1,3 @@
-"use client";
-
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -10,7 +8,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { ScissorsIcon, SearchIcon, ShoppingCartIcon } from "lucide-react";
 import Link from "next/link";
-import { AuthButtons } from "./auth-buttons";
+import AuthButtons from "./auth-buttons";
 
 export function Header() {
   return (

@@ -1,4 +1,4 @@
-import { createClient } from "@/lib/supabase";
+import { createClient } from "@/utils/supabase/client";
 import { Session, User } from "@supabase/supabase-js";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -13,22 +13,24 @@ export function useAuth() {
   useEffect(() => {
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (event, session) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      setLoading(false);
+    } = supabase.auth.onAuthStateChange(
+      async (event: string, session: Session | null) => {
+        setSession(session);
+        setUser(session?.user ?? null);
+        setLoading(false);
 
-      if (event === "SIGNED_OUT") {
-        setUser(null);
-        setSession(null);
-        router.push("/entrar");
+        if (event === "SIGNED_OUT") {
+          setUser(null);
+          setSession(null);
+          router.push("/entrar");
+        }
       }
-    });
+    );
 
     return () => {
       subscription.unsubscribe();
     };
-  }, [supabase, router]);
+  }, [router, supabase.auth]);
 
   const login = async (email: string, password: string) => {
     const { error } = await supabase.auth.signInWithPassword({

@@ -1,16 +1,19 @@
-"use client";
-
 import { Button } from "@/components/ui/button";
-import { useAuth } from "@/providers/auth-provider";
 import { UserIcon } from "lucide-react";
 import Link from "next/link";
+
+import { createClient } from "@/utils/supabase/server";
 import { ProfileMenu } from "../profile-menu";
 
-export function AuthButtons() {
-  const { session } = useAuth();
+export default async function AuthButtons() {
+  const supabase = await createClient();
 
-  if (session) {
-    return <ProfileMenu />;
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (user) {
+    return <ProfileMenu user={user} />;
   }
 
   return (

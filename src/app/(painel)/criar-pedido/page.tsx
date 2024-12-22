@@ -79,7 +79,7 @@ export default function CriarPedidoPage() {
   };
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
+    if (e.target.files?.[0]) {
       setImage(e.target.files[0]); // Seleciona apenas a primeira imagem
     }
   };
