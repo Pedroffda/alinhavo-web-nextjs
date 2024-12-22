@@ -20,7 +20,7 @@ export default async function AuthButtons() {
     <Link href="/entrar">
       <Button variant="ghost" className="text-white hover:text-[#ff9900]">
         <UserIcon className="h-5 w-5 mr-1" />
-        Entrar
+        Entrar / Cadastrar
       </Button>
     </Link>
   );

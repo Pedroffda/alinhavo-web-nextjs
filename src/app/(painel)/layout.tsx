@@ -1,6 +1,5 @@
 import { Header } from "@/components/layout/header";
 import { Toaster } from "@/components/ui/toaster";
-import { AuthProvider } from "@/providers/auth-provider";
 import { Inter, Playfair_Display } from "next/font/google";
 import "../globals.css";
 
@@ -27,8 +26,8 @@ export default async function RootLayout({
         className={`${inter.variable} ${playfair.variable} font-sans antialiased`}
       >
         <Header />
+        <main>{children}</main>
         <Toaster />
-        <AuthProvider>{children}</AuthProvider>
       </body>
     </html>
   );
