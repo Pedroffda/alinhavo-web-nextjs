@@ -1,6 +1,6 @@
 "use client";
 
-import { IPedidos } from "@/@types/collections";
+import { IPedidosCompletos } from "@/@types/collections";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -36,7 +36,7 @@ import { useEffect, useState } from "react";
 
 export default function JobDetail() {
   const [loading, setLoading] = useState(true);
-  const [job, setJob] = useState<IPedidos>({} as IPedidos);
+  const [job, setJob] = useState<IPedidosCompletos>({} as IPedidosCompletos);
   const [progress, setProgress] = useState(0);
   const [status, setStatus] = useState("");
   const [message, setMessage] = useState("");
@@ -64,7 +64,10 @@ export default function JobDetail() {
         .single();
 
       if (error) throw error;
-      setJob(data);
+      setJob({
+        ...data,
+        usuarios: data.usuarios[0],
+      });
       setProgress(data.progresso || 0);
       setStatus(data.status);
     } catch (error) {
@@ -200,9 +203,9 @@ export default function JobDetail() {
           </div> */}
           <div className="flex items-center space-x-2 mb-6">
             <Avatar className="h-10 w-10">
-              <AvatarImage src={job.usuarios.avatar_url} />
+              <AvatarImage src={job.usuarios.avatar_url ?? ""} />
               <AvatarFallback>
-                {job.usuarios.nome_completo.charAt(0)}
+                {job.usuarios.nome_completo?.charAt(0) ?? ""}
               </AvatarFallback>
             </Avatar>
             <div>

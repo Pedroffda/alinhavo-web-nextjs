@@ -1,5 +1,6 @@
 "use client";
 
+import { IPedidos, IUsuarios } from "@/@types/collections";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -12,10 +13,10 @@ import { useEffect, useState } from "react";
 
 export default function CostureiraDashboard() {
   const [loading, setLoading] = useState(true);
-  const [user, setUser] = useState<any>(null);
-  const [activeJobs, setActiveJobs] = useState([]);
-  const [completedJobs, setCompletedJobs] = useState([]);
-  const [availableJobs, setAvailableJobs] = useState([]);
+  const [user, setUser] = useState<IUsuarios>();
+  const [activeJobs, setActiveJobs] = useState<IPedidos[]>();
+  const [completedJobs, setCompletedJobs] = useState<IPedidos[]>();
+  const [availableJobs, setAvailableJobs] = useState<IPedidos[]>();
   const router = useRouter();
   const { toast } = useToast();
 
@@ -110,7 +111,10 @@ export default function CostureiraDashboard() {
       <div className="flex items-center justify-between mb-8">
         <div className="flex items-center space-x-4">
           <Avatar className="h-16 w-16">
-            <AvatarImage src={user?.avatar_url} alt={user?.nome_completo} />
+            <AvatarImage
+              src={user?.avatar_url ?? undefined}
+              alt={user?.nome_completo ?? undefined}
+            />
             <AvatarFallback>
               {user?.nome_completo?.charAt(0) || "C"}
             </AvatarFallback>
@@ -136,7 +140,9 @@ export default function CostureiraDashboard() {
             <Scissors className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{activeJobs.length}</div>
+            <div className="text-2xl font-bold">
+              {activeJobs?.length ?? undefined}
+            </div>
           </CardContent>
         </Card>
         <Card>
@@ -170,7 +176,7 @@ export default function CostureiraDashboard() {
         </TabsList>
         <TabsContent value="active">
           <div className="grid gap-4">
-            {activeJobs.map((job: any) => (
+            {activeJobs?.map((job: IPedidos) => (
               <Card key={job.id}>
                 <CardHeader>
                   <CardTitle>{job.tipo_roupa}</CardTitle>
@@ -178,7 +184,12 @@ export default function CostureiraDashboard() {
                 <CardContent>
                   <p>Status: {job.status}</p>
                   <p>
-                    Prazo: {new Date(job.prazo_entrega).toLocaleDateString()}
+                    {/* Prazo: {new Date(job.prazo_entrega).toLocaleDateString()} */}
+                    {/* prazo da entrega vai ser a data da criação + dias do prazo de entrega */}
+                    Prazo:{" "}
+                    {formatDate(
+                      job.prazo_entrega + "T00:00:00.000Z" + job.created_at
+                    )}
                   </p>
                   <Button
                     className="mt-2"
@@ -193,7 +204,7 @@ export default function CostureiraDashboard() {
         </TabsContent>
         <TabsContent value="completed">
           <div className="grid gap-4">
-            {completedJobs.map((job: any) => (
+            {completedJobs?.map((job: IPedidos) => (
               <Card key={job.id}>
                 <CardHeader>
                   <CardTitle>{job.tipo_roupa}</CardTitle>
@@ -201,7 +212,7 @@ export default function CostureiraDashboard() {
                 <CardContent>
                   <p>
                     Concluído em:{" "}
-                    {new Date(job.data_conclusao).toLocaleDateString()}
+                    {new Date(job.created_at).toLocaleDateString()}
                   </p>
                   <Button
                     className="mt-2"
@@ -221,12 +232,15 @@ export default function CostureiraDashboard() {
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            {availableJobs.map((job) => (
+            {availableJobs?.map((job) => (
               <div key={job.id} className="flex justify-between items-center">
                 <div>
                   <p className="font-medium">{job.tipo_roupa}</p>
                   <p className="text-sm text-muted-foreground">
-                    Prazo: {formatDate(job.prazo_entrega)}
+                    Prazo:{" "}
+                    {formatDate(
+                      job.prazo_entrega + "T00:00:00.000Z" + job.created_at
+                    )}
                   </p>
                 </div>
                 <Button

@@ -1,5 +1,6 @@
 "use client";
 
+import { IPedidos } from "@/@types/collections";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -19,21 +20,13 @@ import {
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/utils/supabase/client";
-import {
-  Calendar,
-  Clock,
-  DollarSign,
-  Loader2,
-  MapPin,
-  Palette,
-  Ruler,
-} from "lucide-react";
+import { DollarSign, Loader2, Palette, Ruler } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
 export default function AvailableJobs() {
   const [loading, setLoading] = useState(true);
-  const [jobs, setJobs] = useState([]);
+  const [jobs, setJobs] = useState<IPedidos[]>([]);
   const [filter, setFilter] = useState("");
   const [sortBy, setSortBy] = useState("created_at");
   const router = useRouter();
@@ -121,7 +114,7 @@ export default function AvailableJobs() {
       </div>
 
       <div className="grid gap-6">
-        {jobs.map((job: any) => (
+        {jobs.map((job: IPedidos) => (
           <Card key={job.id} className="overflow-hidden">
             <CardHeader className="bg-secondary">
               <div className="flex justify-between items-start">
@@ -131,17 +124,19 @@ export default function AvailableJobs() {
                     Publicado em {formatDate(job.created_at)}
                   </CardDescription>
                 </div>
-                <Badge variant={job.urgente ? "destructive" : "secondary"}>
-                  {job.urgente ? "Urgente" : "Normal"}
+                {/* <Badge variant={job.urgente ? "destructive" : "secondary"}> */}
+                <Badge variant="secondary">
+                  {/* {job.urgente ? "Urgente" : "Normal"} */}
+                  Normal
                 </Badge>
               </div>
             </CardHeader>
             <CardContent className="pt-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                <div className="flex items-center space-x-2">
+                {/* <div className="flex items-center space-x-2">
                   <Calendar className="h-5 w-5 text-muted-foreground" />
                   <span>Prazo: {formatDate(job.prazo_entrega)}</span>
-                </div>
+                </div> */}
                 <div className="flex items-center space-x-2">
                   <DollarSign className="h-5 w-5 text-muted-foreground" />
                   <span>Orçamento: R$ {job.orcamento_maximo?.toFixed(2)}</span>
@@ -154,18 +149,18 @@ export default function AvailableJobs() {
                   <Palette className="h-5 w-5 text-muted-foreground" />
                   <span>Cor: {job.cor}</span>
                 </div>
-                <div className="flex items-center space-x-2">
+                {/* <div className="flex items-center space-x-2">
                   <Clock className="h-5 w-5 text-muted-foreground" />
                   <span>Tempo estimado: {job.tempo_estimado} horas</span>
-                </div>
-                <div className="flex items-center space-x-2">
+                </div> */}
+                {/* <div className="flex items-center space-x-2">
                   <MapPin className="h-5 w-5 text-muted-foreground" />
                   <span>Local: {job.local_entrega}</span>
-                </div>
+                </div> */}
               </div>
-              <p className="text-muted-foreground mb-4">{job.descricao}</p>
+              <p className="text-muted-foreground mb-4">{job.detalhes}</p>
               <div className="flex items-center justify-end">
-                <Button onClick={() => handleBid(job.id)}>
+                <Button onClick={() => handleBid(job.id.toString())}>
                   Fazer Proposta
                 </Button>
               </div>
