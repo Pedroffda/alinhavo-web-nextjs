@@ -50,7 +50,7 @@ export function ProfileMenu({ user }: Readonly<{ user: User }>) {
         <DropdownMenuItem onClick={() => router.push("/perfil")}>
           Perfil
         </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => router.push("/meus-pedidos")}>
+        <DropdownMenuItem onClick={() => router.push("/cliente/meus-pedidos")}>
           Meus Pedidos
         </DropdownMenuItem>
         <DropdownMenuItem onClick={() => router.push("/configuracoes")}>

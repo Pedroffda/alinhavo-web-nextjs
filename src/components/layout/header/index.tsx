@@ -16,10 +16,10 @@ export function Header() {
       <header className="bg-[#232f3e] text-white">
         <div className="container mx-auto px-4 py-3">
           <div className="flex items-center justify-between">
-            <div className="flex items-center">
+            <Link href="/" passHref className="flex item-center">
               <ScissorsIcon className="h-8 w-8 text-[#ff9900] mr-2" />
               <span className="text-2xl font-bold">Alinhavo</span>
-            </div>
+            </Link>
             <div className="flex-1 mx-4">
               <div className="relative">
                 <Input
@@ -101,12 +101,14 @@ export function Header() {
               </Link>
             </li>
             <li>
-              <Button
-                variant="ghost"
-                className="text-white hover:text-[#ff9900]"
-              >
-                Atendimento
-              </Button>
+              <Link href="/costureira/jobs">
+                <Button
+                  variant="ghost"
+                  className="text-white hover:text-[#ff9900]"
+                >
+                  Trabalhos
+                </Button>
+              </Link>
             </li>
           </ul>
         </div>

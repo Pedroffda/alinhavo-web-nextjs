@@ -38,6 +38,7 @@ export default function CriarPedidoPage() {
     detalhes: "",
     prazoEntrega: 14,
     orcamentoMaximo: 0,
+    status: "pending",
   });
   const [image, setImage] = useState<File | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -133,7 +134,7 @@ export default function CriarPedidoPage() {
         description: "Seu pedido foi enviado e será analisado em breve.",
       });
 
-      router.push("/meus-pedidos");
+      router.push("/cliente/meus-pedidos");
     } catch (error) {
       console.error("Erro ao criar pedido:", error);
       toast({

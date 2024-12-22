@@ -50,7 +50,7 @@ export function AuthProvider({
       password,
     });
     if (error) throw error;
-    router.push("/meus-pedidos");
+    router.push("/cliente/meus-pedidos");
   };
 
   const signup = async (email: string, password: string) => {
