@@ -16,7 +16,7 @@ export default function HeroSection() {
             medidas.
           </p>
         </div>
-        <Link href="/criar-pedido">
+        <Link href="/cliente/criar-pedido">
           <Button className="bg-[#ff9900] text-[#232f3e] hover:bg-[#ffac31]">
             <PlusCircleIcon className="mr-2" />
             Criar Pedido

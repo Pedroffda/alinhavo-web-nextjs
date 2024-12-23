@@ -1,101 +1,160 @@
 "use client";
 
-import { IPedidos, IUsuarios } from "@/@types/collections";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/utils/supabase/client";
-import { Eye, Loader2, MessageSquare, Scissors, Star } from "lucide-react";
+import {
+  DollarSign,
+  Loader2,
+  MessageSquare,
+  Scissors,
+  Search,
+  Star,
+  TrendingUp,
+  User,
+} from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import {
+  Bar,
+  BarChart,
+  CartesianGrid,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from "recharts";
+
+interface IUsuarios {
+  id: string;
+  nome_completo: string;
+  avatar_url: string;
+}
+
+interface IPedidos {
+  id: number;
+  tipo_roupa: string;
+  status: string;
+  prazo_entrega: string;
+  created_at: string;
+  valor: number;
+}
+
+interface IProposta {
+  id: number;
+  pedido_id: number;
+  status: "pendente" | "aceita" | "recusada";
+  valor: number;
+  tempo_estimado: number;
+}
+
+type IPedidosWithProposals = IPedidos & { propostas: IProposta[] };
+
+const earningsData = [
+  { name: "Jan", earnings: 1200 },
+  { name: "Fev", earnings: 1800 },
+  { name: "Mar", earnings: 2200 },
+  { name: "Abr", earnings: 2600 },
+  { name: "Mai", earnings: 2400 },
+  { name: "Jun", earnings: 3000 },
+];
 
 export default function CostureiraDashboard() {
   const [loading, setLoading] = useState(true);
-  const [user, setUser] = useState<IUsuarios>();
-  const [activeJobs, setActiveJobs] = useState<IPedidos[]>();
-  const [completedJobs, setCompletedJobs] = useState<IPedidos[]>();
-  const [availableJobs, setAvailableJobs] = useState<IPedidos[]>();
+  const [user, setUser] = useState<IUsuarios | null>(null);
+  const [activeJobs, setActiveJobs] = useState<IPedidosWithProposals[]>([]);
+  const [completedJobs, setCompletedJobs] = useState<IPedidos[]>([]);
+  const [pendingProposals, setPendingProposals] = useState<IPedidos[]>([]);
   const router = useRouter();
   const { toast } = useToast();
 
   useEffect(() => {
-    async function loadDashboard() {
-      try {
-        setLoading(true);
-        const {
-          data: { session },
-          error: sessionError,
-        } = await supabase.auth.getSession();
-        if (sessionError) throw sessionError;
-        if (!session) {
-          router.push("/login");
-          return;
-        }
+    loadDashboard();
+  }, []);
 
-        const { data: userData, error: userError } = await supabase
+  async function loadDashboard() {
+    try {
+      setLoading(true);
+      const {
+        data: { session },
+        error: sessionError,
+      } = await supabase.auth.getSession();
+      if (sessionError) throw sessionError;
+      if (!session) {
+        router.push("/entrar");
+        return;
+      }
+
+      const [
+        userData,
+        activeJobsData,
+        completedJobsData,
+        pendingProposalsData,
+      ] = await Promise.all([
+        supabase
           .from("usuarios")
           .select("*")
           .eq("id", session.user.id)
-          .single();
-
-        if (userError) throw userError;
-        setUser(userData);
-
-        // Fetch active jobs
-        const { data: activeJobsData, error: activeJobsError } = await supabase
+          .single(),
+        supabase
+          .from("pedidos")
+          .select("*, propostas!inner(*)")
+          .eq("usuario_id", session.user.id)
+          .eq("status", "em andamento")
+          .eq("propostas.status", "aceita")
+          .order("prazo_entrega", { ascending: true }),
+        supabase
           .from("pedidos")
           .select("*")
+          .eq("usuario_id", session.user.id)
+          .eq("status", "concluído")
+          .order("created_at", { ascending: false })
+          .limit(5),
+        supabase
+          .from("propostas")
+          .select("*, pedidos(*)")
           .eq("costureira_id", session.user.id)
-          .not("status", "eq", "completed")
-          .order("created_at", { ascending: false });
+          .eq("status", "pendente")
+          .order("created_at", { ascending: false }),
+      ]);
 
-        if (activeJobsError) throw activeJobsError;
-        setActiveJobs(activeJobsData);
+      if (userData.error) throw userData.error;
+      if (activeJobsData.error) throw activeJobsData.error;
+      if (completedJobsData.error) throw completedJobsData.error;
+      if (pendingProposalsData.error) throw pendingProposalsData.error;
 
-        // Fetch completed jobs
-        const { data: completedJobsData, error: completedJobsError } =
-          await supabase
-            .from("pedidos")
-            .select("*")
-            .eq("costureira_id", session.user.id)
-            .eq("status", "completed")
-            .order("created_at", { ascending: false })
-            .limit(5);
-
-        if (completedJobsError) throw completedJobsError;
-        setCompletedJobs(completedJobsData);
-
-        // Fetch available jobs
-        const { data: availableJobsData, error: availableJobsError } =
-          await supabase
-            .from("pedidos")
-            .select("*")
-            .is("costureira_id", null)
-            .order("created_at", { ascending: false })
-            .limit(5);
-
-        if (availableJobsError) throw availableJobsError;
-        setAvailableJobs(availableJobsData);
-      } catch (error) {
-        console.error("Erro ao carregar dashboard:", error);
-        toast({
-          title: "Erro",
-          description:
-            "Não foi possível carregar o dashboard. Por favor, tente novamente mais tarde.",
-          variant: "destructive",
-        });
-      } finally {
-        setLoading(false);
-      }
+      setUser(userData.data);
+      setActiveJobs(activeJobsData.data);
+      setCompletedJobs(completedJobsData.data);
+      setPendingProposals(pendingProposalsData.data);
+    } catch (error) {
+      console.error("Erro ao carregar dashboard:", error);
+      toast({
+        title: "Erro",
+        description:
+          "Não foi possível carregar o dashboard. Por favor, tente novamente mais tarde.",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
     }
-
-    loadDashboard();
-  }, [router, toast]);
+  }
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString();
+    return new Date(dateString).toLocaleDateString("pt-BR", {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+    });
   };
 
   if (loading) {
@@ -111,12 +170,9 @@ export default function CostureiraDashboard() {
       <div className="flex items-center justify-between mb-8">
         <div className="flex items-center space-x-4">
           <Avatar className="h-16 w-16">
-            <AvatarImage
-              src={user?.avatar_url ?? undefined}
-              alt={user?.nome_completo ?? undefined}
-            />
+            <AvatarImage src={user?.avatar_url} alt={user?.nome_completo} />
             <AvatarFallback>
-              {user?.nome_completo?.charAt(0) || "C"}
+              {user?.nome_completo?.charAt(0) ?? "C"}
             </AvatarFallback>
           </Avatar>
           <div>
@@ -126,12 +182,20 @@ export default function CostureiraDashboard() {
             <p className="text-muted-foreground">Costureira</p>
           </div>
         </div>
-        <Button onClick={() => router.push("/costureira/jobs")}>
-          Procurar Novos Trabalhos
-        </Button>
+        <div className="flex space-x-2">
+          <Button onClick={() => router.push("/costureira/jobs")}>
+            <Search className="mr-2 h-4 w-4" /> Procurar Trabalhos
+          </Button>
+          <Button
+            variant="outline"
+            onClick={() => router.push("/costureira/perfil")}
+          >
+            <User className="mr-2 h-4 w-4" /> Editar Perfil
+          </Button>
+        </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">
@@ -140,20 +204,27 @@ export default function CostureiraDashboard() {
             <Scissors className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">
-              {activeJobs?.length ?? undefined}
-            </div>
+            <div className="text-2xl font-bold">{activeJobs.length}</div>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">
-              Mensagens Não Lidas
+              Propostas Pendentes
             </CardTitle>
             <MessageSquare className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">7</div>
+            <div className="text-2xl font-bold">{pendingProposals.length}</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Ganhos do Mês</CardTitle>
+            <DollarSign className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">R$ 3.000</div>
           </CardContent>
         </Card>
         <Card>
@@ -169,34 +240,111 @@ export default function CostureiraDashboard() {
         </Card>
       </div>
 
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+        <Card>
+          <CardHeader>
+            <CardTitle>Ganhos Mensais</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ResponsiveContainer width="100%" height={300}>
+              <BarChart data={earningsData}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="name" />
+                <YAxis />
+                <Tooltip />
+                <Bar dataKey="earnings" fill="#8884d8" />
+              </BarChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader>
+            <CardTitle>Próximos Prazos</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {activeJobs.slice(0, 3)?.map((job) => (
+                <div key={job.id} className="flex justify-between items-center">
+                  <div>
+                    <p className="font-medium">{job.tipo_roupa}</p>
+                    <p className="text-sm text-muted-foreground">
+                      Prazo: {formatDate(job.prazo_entrega)}
+                    </p>
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => router.push(`/costureira/jobs/${job.id}`)}
+                  >
+                    Ver Detalhes
+                  </Button>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
       <Tabs defaultValue="active" className="space-y-4">
         <TabsList>
           <TabsTrigger value="active">Trabalhos Ativos</TabsTrigger>
+          <TabsTrigger value="proposals">Propostas Pendentes</TabsTrigger>
           <TabsTrigger value="completed">Trabalhos Concluídos</TabsTrigger>
         </TabsList>
         <TabsContent value="active">
           <div className="grid gap-4">
-            {activeJobs?.map((job: IPedidos) => (
+            {activeJobs?.map((job) => (
               <Card key={job.id}>
                 <CardHeader>
                   <CardTitle>{job.tipo_roupa}</CardTitle>
+                  <CardDescription>
+                    Prazo: {formatDate(job.prazo_entrega)}
+                  </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <p>Status: {job.status}</p>
-                  <p>
-                    {/* Prazo: {new Date(job.prazo_entrega).toLocaleDateString()} */}
-                    {/* prazo da entrega vai ser a data da criação + dias do prazo de entrega */}
-                    Prazo:{" "}
-                    {formatDate(
-                      job.prazo_entrega + "T00:00:00.000Z" + job.created_at
-                    )}
-                  </p>
-                  <Button
-                    className="mt-2"
-                    onClick={() => router.push(`/costureira/job/${job.id}`)}
-                  >
-                    Ver Detalhes
-                  </Button>
+                  <div className="flex justify-between items-center">
+                    <div className="space-y-1">
+                      <p>Status: {job.status}</p>
+                      <p>Valor: R$ {job.propostas[0].valor.toFixed(2)}</p>
+                    </div>
+                    <Button
+                      onClick={() => router.push(`/costureira/jobs/${job.id}`)}
+                    >
+                      Ver Detalhes
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </TabsContent>
+        <TabsContent value="proposals">
+          <div className="grid gap-4">
+            {pendingProposals?.map((proposal) => (
+              <Card key={proposal.id}>
+                <CardHeader>
+                  {/* <CardTitle>{proposal.pedido.tipo_roupa}</CardTitle> */}
+                  <CardDescription>
+                    Enviada em: {formatDate(proposal.created_at)}
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex justify-between items-center">
+                    <div className="space-y-1">
+                      <p>Valor Proposto: R$ {proposal.valor.toFixed(2)}</p>
+                      <p>
+                        Prazo do Cliente:{" "}
+                        {/* {formatDate(proposal.pedido.prazo_entrega)} */}
+                      </p>
+                    </div>
+                    <Button
+                      onClick={() =>
+                        router.push(`/costureira/proposta/${proposal.id}`)
+                      }
+                    >
+                      Ver Detalhes
+                    </Button>
+                  </div>
                 </CardContent>
               </Card>
             ))}
@@ -204,55 +352,46 @@ export default function CostureiraDashboard() {
         </TabsContent>
         <TabsContent value="completed">
           <div className="grid gap-4">
-            {completedJobs?.map((job: IPedidos) => (
+            {completedJobs?.map((job) => (
               <Card key={job.id}>
                 <CardHeader>
                   <CardTitle>{job.tipo_roupa}</CardTitle>
+                  <CardDescription>
+                    Concluído em: {formatDate(job.created_at)}
+                  </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <p>
-                    Concluído em:{" "}
-                    {new Date(job.created_at).toLocaleDateString()}
-                  </p>
-                  <Button
-                    className="mt-2"
-                    onClick={() => router.push(`/costureira/jobs/${job.id}`)}
-                  >
-                    Ver Detalhes
-                  </Button>
+                  <div className="flex justify-between items-center">
+                    <div className="space-y-1">
+                      <p>Valor: R$ {job.valor.toFixed(2)}</p>
+                    </div>
+                    <Button
+                      variant="outline"
+                      onClick={() => router.push(`/costureira/jobs/${job.id}`)}
+                    >
+                      Ver Detalhes
+                    </Button>
+                  </div>
                 </CardContent>
               </Card>
             ))}
           </div>
         </TabsContent>
       </Tabs>
-      <Card>
+
+      <Card className="mt-8">
         <CardHeader>
-          <CardTitle>Trabalhos Disponíveis</CardTitle>
+          <CardTitle>Tendências de Mercado</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="space-y-4">
-            {availableJobs?.map((job) => (
-              <div key={job.id} className="flex justify-between items-center">
-                <div>
-                  <p className="font-medium">{job.tipo_roupa}</p>
-                  <p className="text-sm text-muted-foreground">
-                    Prazo:{" "}
-                    {formatDate(
-                      job.prazo_entrega + "T00:00:00.000Z" + job.created_at
-                    )}
-                  </p>
-                </div>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => router.push(`/costureira/jobs/${job.id}`)}
-                >
-                  <Eye className="h-4 w-4 mr-2" />
-                  Ver Detalhes
-                </Button>
-              </div>
-            ))}
+          <div className="flex items-center space-x-4">
+            <TrendingUp className="h-10 w-10 text-primary" />
+            <div>
+              <p className="font-medium">Roupas sustentáveis estão em alta</p>
+              <p className="text-sm text-muted-foreground">
+                Considere oferecer serviços de upcycling e reparos
+              </p>
+            </div>
           </div>
         </CardContent>
       </Card>

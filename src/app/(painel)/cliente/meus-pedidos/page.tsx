@@ -197,7 +197,7 @@ export default function MeusPedidos() {
             </p>
             <Button
               className="mt-4 mx-auto block"
-              onClick={() => router.push("/cliente/novo-pedido")}
+              onClick={() => router.push("/cliente/criar-pedido")}
             >
               Criar Novo Pedido
             </Button>

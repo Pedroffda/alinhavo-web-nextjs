@@ -22,7 +22,7 @@ import {
 import { Slider } from "@/components/ui/slider";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { createBrowserClient } from "@supabase/ssr";
+import { supabase } from "@/utils/supabase/client";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
@@ -30,23 +30,19 @@ export default function CriarPedidoPage() {
   const router = useRouter();
   const { toast } = useToast();
   const [formData, setFormData] = useState({
-    tipoRoupa: "",
+    tipo_roupa: "",
     tamanho: "",
     cor: "",
     material: "",
     estilo: "",
-    detalhes: "",
-    prazoEntrega: 14,
-    orcamentoMaximo: 0,
+    detalhes_adicionais: "",
+    prazo_entrega: 14,
+    orcamento_maximo: 0,
     status: "pending",
   });
   const [image, setImage] = useState<File | null>(null);
   const [isLoading, setIsLoading] = useState(false);
-
-  const supabase = createBrowserClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  );
+  const [deliveryDate, setDeliveryDate] = useState<Date>(new Date());
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -59,10 +55,17 @@ export default function CriarPedidoPage() {
           description: "Você precisa estar logado para criar um pedido.",
           variant: "destructive",
         });
+        router.push("/login");
       }
     };
     checkAuth();
-  }, [supabase, router, toast]);
+  }, [router, toast]);
+
+  useEffect(() => {
+    const newDeliveryDate = new Date();
+    newDeliveryDate.setDate(newDeliveryDate.getDate() + formData.prazo_entrega);
+    setDeliveryDate(newDeliveryDate);
+  }, [formData.prazo_entrega]);
 
   const handleInputChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
@@ -81,9 +84,10 @@ export default function CriarPedidoPage() {
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files?.[0]) {
-      setImage(e.target.files[0]); // Seleciona apenas a primeira imagem
+      setImage(e.target.files[0]);
     }
   };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
@@ -96,7 +100,13 @@ export default function CriarPedidoPage() {
 
       const { data: orderData, error: orderError } = await supabase
         .from("pedidos")
-        .insert([{ ...formData, usuario_id: user.id }])
+        .insert([
+          {
+            ...formData,
+            usuario_id: user.id,
+            prazo_entrega: deliveryDate.toISOString().split("T")[0],
+          },
+        ])
         .select();
 
       if (orderError) throw orderError;
@@ -107,12 +117,9 @@ export default function CriarPedidoPage() {
         const fileName = `${Math.random()}.${fileExt}`;
         const filePath = `${user.id}/${orderId}/${fileName}`;
 
-        // Upload da imagem
         const { error: uploadError } = await supabase.storage
           .from("inspiracoes")
           .upload(filePath, image);
-
-        console.log("uploadError", uploadError);
 
         if (uploadError) throw uploadError;
 
@@ -149,25 +156,25 @@ export default function CriarPedidoPage() {
   };
 
   return (
-    <div className="flex justify-center items-center min-h-screen bg-gray-100 p-4">
-      <Card className="w-full max-w-2xl">
+    <div className="container mx-auto px-4 py-8">
+      <Card className="w-full max-w-4xl mx-auto">
         <CardHeader>
-          <CardTitle className="text-2xl font-bold text-center">
+          <CardTitle className="text-3xl font-bold text-center">
             Criar Novo Pedido
           </CardTitle>
-          <CardDescription className="text-center">
+          <CardDescription className="text-center text-lg">
             Preencha os detalhes do seu pedido personalizado
           </CardDescription>
         </CardHeader>
         <form onSubmit={handleSubmit}>
-          <CardContent className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
+          <CardContent className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-2">
-                <Label htmlFor="tipoRoupa">Tipo de Roupa</Label>
+                <Label htmlFor="tipo_roupa">Tipo de Roupa</Label>
                 <Select
-                  name="tipoRoupa"
+                  name="tipo_roupa"
                   onValueChange={(value) =>
-                    handleSelectChange("tipoRoupa", value)
+                    handleSelectChange("tipo_roupa", value)
                   }
                   required
                 >
@@ -205,30 +212,30 @@ export default function CriarPedidoPage() {
                   </SelectContent>
                 </Select>
               </div>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="cor">Cor Principal</Label>
-              <Input
-                type="text"
-                id="cor"
-                name="cor"
-                placeholder="Ex: Azul marinho, Vermelho escuro"
-                value={formData.cor}
-                onChange={handleInputChange}
-                required
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="material">Material Preferido</Label>
-              <Input
-                type="text"
-                id="material"
-                name="material"
-                placeholder="Ex: Algodão, Seda, Linho"
-                value={formData.material}
-                onChange={handleInputChange}
-                required
-              />
+              <div className="space-y-2">
+                <Label htmlFor="cor">Cor Principal</Label>
+                <Input
+                  type="text"
+                  id="cor"
+                  name="cor"
+                  placeholder="Ex: Azul marinho, Vermelho escuro"
+                  value={formData.cor}
+                  onChange={handleInputChange}
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="material">Material Preferido</Label>
+                <Input
+                  type="text"
+                  id="material"
+                  name="material"
+                  placeholder="Ex: Algodão, Seda, Linho"
+                  value={formData.material}
+                  onChange={handleInputChange}
+                  required
+                />
+              </div>
             </div>
             <div className="space-y-2">
               <Label htmlFor="estilo">Estilo</Label>
@@ -236,6 +243,7 @@ export default function CriarPedidoPage() {
                 name="estilo"
                 onValueChange={(value) => handleSelectChange("estilo", value)}
                 required
+                className="flex space-x-4"
               >
                 <div className="flex items-center space-x-2">
                   <RadioGroupItem value="casual" id="casual" />
@@ -256,40 +264,43 @@ export default function CriarPedidoPage() {
               </RadioGroup>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="detalhes">Detalhes Adicionais</Label>
+              <Label htmlFor="detalhes_adicionais">Detalhes Adicionais</Label>
               <Textarea
-                id="detalhes"
-                name="detalhes"
-                placeholder="Descreva detalhes específicos, medidas ou referências de estilo"
-                value={formData.detalhes}
+                id="detalhes_adicionais"
+                name="detalhes_adicionais"
+                placeholder="Descreva detalhes adicionais específicos, medidas ou referências de estilo"
+                value={formData.detalhes_adicionais}
                 onChange={handleInputChange}
-                className="min-h-[100px]"
+                className="min-h-[120px]"
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="prazoEntrega">
-                Prazo de Entrega Desejado (em dias)
-              </Label>
+              <Label htmlFor="prazo_entrega">Prazo de Entrega Desejado</Label>
               <Slider
-                id="prazoEntrega"
+                id="prazo_entrega"
                 min={7}
                 max={60}
                 step={1}
-                value={[formData.prazoEntrega]}
+                value={[formData.prazo_entrega]}
                 onValueChange={(value) =>
-                  handleSliderChange("prazoEntrega", value)
+                  handleSliderChange("prazo_entrega", value)
                 }
               />
-              <div className="text-center">{formData.prazoEntrega} dias</div>
+              <div className="flex justify-between text-sm text-muted-foreground">
+                <span>{formData.prazo_entrega} dias</span>
+                <span>
+                  Data de entrega: {deliveryDate.toLocaleDateString("pt-BR")}
+                </span>
+              </div>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="orcamentoMaximo">Orçamento Máximo (R$)</Label>
+              <Label htmlFor="orcamento_maximo">Orçamento Máximo (R$)</Label>
               <Input
                 type="number"
-                id="orcamentoMaximo"
-                name="orcamentoMaximo"
+                id="orcamento_maximo"
+                name="orcamento_maximo"
                 placeholder="Valor em Reais"
-                value={formData.orcamentoMaximo}
+                value={formData.orcamento_maximo}
                 onChange={handleInputChange}
                 min="0"
                 step="10"
@@ -297,17 +308,16 @@ export default function CriarPedidoPage() {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="imagens">Imagens de Inspiração</Label>
+              <Label htmlFor="imagens">Imagem de Inspiração</Label>
               <Input
                 type="file"
                 id="imagens"
                 name="imagens"
                 onChange={handleImageUpload}
-                multiple
                 accept="image/*"
               />
-              <p className="text-sm text-gray-500">
-                Você pode selecionar múltiplas imagens
+              <p className="text-sm text-muted-foreground">
+                Você pode selecionar uma imagem de inspiração
               </p>
             </div>
           </CardContent>

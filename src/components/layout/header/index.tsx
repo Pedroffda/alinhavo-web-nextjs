@@ -1,16 +1,41 @@
 import { Button } from "@/components/ui/button";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
+// import { supabase } from "@/utils/supabase/client";
+import { createClient } from "@/utils/supabase/server";
 import { ScissorsIcon, SearchIcon, ShoppingCartIcon } from "lucide-react";
 import Link from "next/link";
 import AuthButtons from "./auth-buttons";
 
-export function Header() {
+export async function Header() {
+  const supabase = await createClient();
+
+  // Tente obter o usuário autenticado
+  const {
+    data: { user },
+    error: authUserError,
+  } = await supabase.auth.getUser();
+
+  if (authUserError) {
+    console.error("Erro ao buscar usuário autenticado:", authUserError.message);
+  }
+
+  let userData = null;
+
+  // Se houver um usuário autenticado, busque os dados adicionais
+  if (user) {
+    const { data, error } = await supabase
+      .from("usuarios")
+      .select("*")
+      .eq("id", user.id)
+      .single();
+
+    if (error) {
+      console.error("Erro ao buscar dados do usuário:", error.message);
+    } else {
+      userData = data;
+    }
+  }
+
   return (
     <>
       <header className="bg-[#232f3e] text-white">
@@ -48,50 +73,7 @@ export function Header() {
         <div className="container mx-auto px-4 py-2">
           <ul className="flex justify-between items-center">
             <li>
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    className="text-white hover:text-[#ff9900]"
-                  >
-                    Categorias
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent>
-                  <DropdownMenuItem>Vestidos</DropdownMenuItem>
-                  <DropdownMenuItem>Camisas</DropdownMenuItem>
-                  <DropdownMenuItem>Calças</DropdownMenuItem>
-                  <DropdownMenuItem>Saias</DropdownMenuItem>
-                  <DropdownMenuItem>Acessórios</DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </li>
-            <li>
-              <Button
-                variant="ghost"
-                className="text-white hover:text-[#ff9900]"
-              >
-                Ofertas do Dia
-              </Button>
-            </li>
-            <li>
-              <Button
-                variant="ghost"
-                className="text-white hover:text-[#ff9900]"
-              >
-                Costureiros em Destaque
-              </Button>
-            </li>
-            <li>
-              <Button
-                variant="ghost"
-                className="text-white hover:text-[#ff9900]"
-              >
-                Como Funciona
-              </Button>
-            </li>
-            <li>
-              <Link href="/criar-pedido">
+              <Link href="/cliente/criar-pedido">
                 <Button
                   variant="ghost"
                   className="text-white hover:text-[#ff9900]"
@@ -100,16 +82,18 @@ export function Header() {
                 </Button>
               </Link>
             </li>
-            <li>
-              <Link href="/costureira/jobs">
-                <Button
-                  variant="ghost"
-                  className="text-white hover:text-[#ff9900]"
-                >
-                  Trabalhos
-                </Button>
-              </Link>
-            </li>
+            {userData?.tipo_usuario === "costureiro" && (
+              <li>
+                <Link href="/costureira/jobs">
+                  <Button
+                    variant="ghost"
+                    className="text-white hover:text-[#ff9900]"
+                  >
+                    Trabalhos
+                  </Button>
+                </Link>
+              </li>
+            )}
           </ul>
         </div>
       </nav>

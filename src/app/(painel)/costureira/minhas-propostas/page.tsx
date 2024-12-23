@@ -2,7 +2,7 @@
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Table,
   TableBody,
@@ -13,7 +13,7 @@ import {
 } from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/utils/supabase/client";
-import { Loader2 } from "lucide-react";
+import { Calendar, Clock, DollarSign, Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
@@ -28,6 +28,7 @@ type Proposal = {
   pedido: {
     tipo_roupa: string;
     prazo_entrega: string;
+    status: string;
   };
 };
 
@@ -59,8 +60,6 @@ export default function MinhasPropostas() {
         )
         .eq("costureira_id", sessionData.session.user.id)
         .order("created_at", { ascending: false });
-
-      //   console.log(data);
 
       if (error) throw error;
       setProposals(data);
@@ -100,6 +99,32 @@ export default function MinhasPropostas() {
     }
   };
 
+  const groupProposalsByStatus = () => {
+    const grouped: { [key: string]: Proposal[] } = {
+      ativas: [],
+      pendentes: [],
+      recusadas: [],
+      canceladas: [],
+    };
+
+    proposals.forEach((proposal) => {
+      if (
+        proposal.status === "aceita" &&
+        proposal.pedido.status === "em andamento"
+      ) {
+        grouped.ativas.push(proposal);
+      } else if (proposal.status === "pendente") {
+        grouped.pendentes.push(proposal);
+      } else if (proposal.status === "recusada") {
+        grouped.recusadas.push(proposal);
+      } else if (proposal.status === "cancelada") {
+        grouped.canceladas.push(proposal);
+      }
+    });
+
+    return grouped;
+  };
+
   if (loading) {
     return (
       <div className="flex justify-center items-center h-screen">
@@ -107,6 +132,8 @@ export default function MinhasPropostas() {
       </div>
     );
   }
+
+  const groupedProposals = groupProposalsByStatus();
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -127,49 +154,107 @@ export default function MinhasPropostas() {
           </CardContent>
         </Card>
       ) : (
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Tipo de Roupa</TableHead>
-              <TableHead>Valor Proposto</TableHead>
-              <TableHead>Tempo Estimado</TableHead>
-              <TableHead>Prazo do Pedido</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead>Data da Proposta</TableHead>
-              <TableHead>Ações</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {proposals.map((proposal) => (
-              <TableRow key={proposal.id}>
-                <TableCell>{proposal.pedido.tipo_roupa}</TableCell>
-                <TableCell>R$ {proposal.valor.toFixed(2)}</TableCell>
-                <TableCell>{proposal.tempo_estimado} horas</TableCell>
-                <TableCell>
-                  {formatDate(proposal.pedido.prazo_entrega)}
-                </TableCell>
-                <TableCell>
-                  <Badge className={getStatusColor(proposal.status)}>
-                    {proposal.status.charAt(0).toUpperCase() +
-                      proposal.status.slice(1)}
-                  </Badge>
-                </TableCell>
-                <TableCell>{formatDate(proposal.created_at)}</TableCell>
-                <TableCell>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() =>
-                      router.push(`/costureira/proposta/${proposal.id}`)
-                    }
-                  >
-                    Detalhes
-                  </Button>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+        <>
+          {groupedProposals.ativas.length > 0 && (
+            <Card className="mb-8">
+              <CardHeader>
+                <CardTitle>Trabalhos Ativos</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {groupedProposals.ativas.map((proposal) => (
+                  <Card key={proposal.id} className="mb-4">
+                    <CardContent className="pt-6">
+                      <div className="flex justify-between items-center mb-4">
+                        <h3 className="text-lg font-semibold">
+                          {proposal.pedido.tipo_roupa}
+                        </h3>
+                        <Badge className={getStatusColor(proposal.status)}>
+                          {proposal.status.charAt(0).toUpperCase() +
+                            proposal.status.slice(1)}
+                        </Badge>
+                      </div>
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div className="flex items-center">
+                          <DollarSign className="mr-2 h-4 w-4" />
+                          <span>R$ {proposal.valor.toFixed(2)}</span>
+                        </div>
+                        <div className="flex items-center">
+                          <Clock className="mr-2 h-4 w-4" />
+                          <span>{proposal.tempo_estimado} horas</span>
+                        </div>
+                        <div className="flex items-center">
+                          <Calendar className="mr-2 h-4 w-4" />
+                          <span>
+                            Prazo: {formatDate(proposal.pedido.prazo_entrega)}
+                          </span>
+                        </div>
+                      </div>
+                      <Button
+                        className="mt-4"
+                        onClick={() =>
+                          router.push(`/costureira/proposta/${proposal.id}`)
+                        }
+                      >
+                        Ver Detalhes
+                      </Button>
+                    </CardContent>
+                  </Card>
+                ))}
+              </CardContent>
+            </Card>
+          )}
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Todas as Propostas</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Tipo de Roupa</TableHead>
+                    <TableHead>Valor Proposto</TableHead>
+                    <TableHead>Tempo Estimado</TableHead>
+                    <TableHead>Prazo do Pedido</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Data da Proposta</TableHead>
+                    <TableHead>Ações</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {proposals.map((proposal) => (
+                    <TableRow key={proposal.id}>
+                      <TableCell>{proposal.pedido.tipo_roupa}</TableCell>
+                      <TableCell>R$ {proposal.valor.toFixed(2)}</TableCell>
+                      <TableCell>{proposal.tempo_estimado} horas</TableCell>
+                      <TableCell>
+                        {formatDate(proposal.pedido.prazo_entrega)}
+                      </TableCell>
+                      <TableCell>
+                        <Badge className={getStatusColor(proposal.status)}>
+                          {proposal.status.charAt(0).toUpperCase() +
+                            proposal.status.slice(1)}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>{formatDate(proposal.created_at)}</TableCell>
+                      <TableCell>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() =>
+                            router.push(`/costureira/proposta/${proposal.id}`)
+                          }
+                        >
+                          Detalhes
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+        </>
       )}
     </div>
   );
